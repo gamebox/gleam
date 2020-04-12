@@ -39,6 +39,8 @@ strum_macros = "0.17"
 handlebars = "3.0"
 # Markdown in docs
 pulldown-cmark = "0.7.0"
+# Salsa - incremental computations
+salsa = "0.14.1"
 
 [build-dependencies]
 lalrpop = "0.17"

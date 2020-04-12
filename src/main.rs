@@ -2,6 +2,7 @@
 // #![deny(warnings)]
 
 mod ast;
+mod db;
 mod doc;
 mod erl;
 mod error;
@@ -36,6 +37,10 @@ extern crate lazy_static;
 #[macro_use]
 extern crate handlebars;
 
+#[macro_use]
+extern crate salsa;
+
+use crate::db::Sources;
 use crate::error::Error;
 use crate::project::ModuleOrigin;
 use crate::project::OutputFile;
@@ -43,6 +48,7 @@ use serde::Deserialize;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
+use std::sync::Arc;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 use strum::VariantNames;
@@ -159,7 +165,17 @@ fn command_build(root: String, write_docs: bool) -> Result<(), Error> {
     crate::project::collect_source(root_path.join("src"), ModuleOrigin::Src, &mut srcs)?;
     crate::project::collect_source(root_path.join("test"), ModuleOrigin::Test, &mut srcs)?;
 
-    let analysed = crate::project::analysed(srcs)?;
+    let mut db = db::GleamDatabase::default();
+
+    for src in srcs.into_iter() {
+        let path = src.path.to_str().unwrap().to_string();
+        db.set_source_file(path.clone(), src);
+        let mut sources = db.sources(());
+        sources.insert(path);
+        db.set_sources((), sources);
+    }
+
+    let analysed = crate::project::analysed(db.all_sources())?;
 
     // Generate outputs (Erlang code, html documentation, etc)
     let mut output_files = vec![];

@@ -9,7 +9,7 @@ use source_tree::SourceTree;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct Input {
     pub source_base_path: PathBuf,
     pub path: PathBuf,
@@ -32,7 +32,7 @@ pub struct OutputFile {
     pub path: PathBuf,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum ModuleOrigin {
     Src,
     Test,
