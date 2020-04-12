@@ -40,7 +40,7 @@ extern crate handlebars;
 #[macro_use]
 extern crate salsa;
 
-use crate::db::{Sources, Modules};
+use crate::db::{Modules, Sources};
 use crate::error::Error;
 use crate::project::ModuleOrigin;
 use crate::project::OutputFile;
