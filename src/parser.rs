@@ -1,6 +1,6 @@
 use itertools::Itertools;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Error {
     TooManyHolesInCapture {
         location: crate::ast::SrcSpan,

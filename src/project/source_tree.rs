@@ -30,6 +30,7 @@ impl SourceTree {
                     .remove(&i)
                     .gleam_expect("SourceTree.consume(): Unknown graph index")
             });
+        println!("{:#?}", iter);
         Ok(iter)
     }
 

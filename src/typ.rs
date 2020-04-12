@@ -13,7 +13,7 @@ use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     App {
         public: bool,
@@ -896,7 +896,7 @@ impl<'a, 'b> Env<'a, 'b> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeVar {
     Unbound { id: usize, level: usize },
     Link { typ: Arc<Type> },
@@ -953,7 +953,7 @@ pub enum NewTypeAction {
     MakeGeneric,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Error {
     UnknownLabel {
         location: SrcSpan,

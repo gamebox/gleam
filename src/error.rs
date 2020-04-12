@@ -55,7 +55,7 @@ impl<T, E> GleamExpect<T> for Result<T, E> {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Error {
     Parse {
         path: PathBuf,
@@ -109,7 +109,7 @@ pub enum Error {
     },
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum StandardIOAction {
     Read,
 }
@@ -122,7 +122,7 @@ impl StandardIOAction {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum FileIOAction {
     Open,
     Read,
@@ -147,7 +147,7 @@ impl FileIOAction {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum FileKind {
     File,
     Directory,

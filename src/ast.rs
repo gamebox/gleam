@@ -11,7 +11,7 @@ pub type TypedModule = Module<TypedExpr, typ::Module>;
 
 pub type UntypedModule = Module<UntypedExpr, ()>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module<Expr, Info> {
     pub name: Vec<String>,
     pub type_info: Info,
@@ -51,14 +51,14 @@ fn module_dependencies_test() {
     );
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Arg {
     pub names: ArgNames,
     pub location: SrcSpan,
     pub annotation: Option<TypeAst>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ArgNames {
     Discard { name: String },
     LabelledDiscard { label: String, name: String },
@@ -66,14 +66,14 @@ pub enum ArgNames {
     NamedLabelled { name: String, label: String },
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RecordConstructor {
     pub location: SrcSpan,
     pub name: String,
     pub args: Vec<(Option<String>, TypeAst)>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeAst {
     Constructor {
         location: SrcSpan,
@@ -113,7 +113,7 @@ impl TypeAst {
 pub type TypedStatement = Statement<TypedExpr>;
 pub type UntypedStatement = Statement<UntypedExpr>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement<Expr> {
     Fn {
         location: SrcSpan,
@@ -197,20 +197,20 @@ impl<A> Statement<A> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnqualifiedImport {
     pub location: SrcSpan,
     pub name: String,
     pub as_name: Option<String>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExternalFnArg {
     pub label: Option<String>,
     pub typ: TypeAst,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BinOp {
     And,
     Or,
@@ -235,7 +235,7 @@ pub enum BinOp {
     ModuloInt,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct CallArg<A> {
     pub label: Option<String>,
     pub location: SrcSpan,
@@ -250,7 +250,7 @@ pub type TypedClause = Clause<TypedExpr, PatternConstructor, Arc<typ::Type>>;
 
 pub type UntypedClause = Clause<UntypedExpr, (), ()>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Clause<Expr, PatternConstructor, Type> {
     pub location: SrcSpan,
     pub pattern: MultiPattern<PatternConstructor>,
@@ -262,7 +262,7 @@ pub struct Clause<Expr, PatternConstructor, Type> {
 pub type UntypedClauseGuard = ClauseGuard<()>;
 pub type TypedClauseGuard = ClauseGuard<Arc<typ::Type>>;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum ClauseGuard<Type> {
     Equals {
         location: SrcSpan,
@@ -323,7 +323,7 @@ impl TypedClauseGuard {
     }
 }
 
-#[derive(Debug, PartialEq, Default, Clone)]
+#[derive(Debug, PartialEq, Default, Clone, Eq)]
 pub struct SrcSpan {
     pub start: usize,
     pub end: usize,
@@ -332,7 +332,7 @@ pub struct SrcSpan {
 pub type UntypedPattern = Pattern<()>;
 pub type TypedPattern = Pattern<PatternConstructor>;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pattern<Constructor> {
     Int {
         location: SrcSpan,

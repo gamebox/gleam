@@ -40,11 +40,12 @@ extern crate handlebars;
 #[macro_use]
 extern crate salsa;
 
-use crate::db::Sources;
+use crate::db::{Sources, Modules};
 use crate::error::Error;
 use crate::project::ModuleOrigin;
 use crate::project::OutputFile;
 use serde::Deserialize;
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
@@ -167,6 +168,8 @@ fn command_build(root: String, write_docs: bool) -> Result<(), Error> {
 
     let mut db = db::GleamDatabase::default();
 
+    db.set_sources((), HashSet::with_capacity(srcs.len()));
+
     for src in srcs.into_iter() {
         let path = src.path.to_str().unwrap().to_string();
         db.set_source_file(path.clone(), src);
@@ -175,7 +178,12 @@ fn command_build(root: String, write_docs: bool) -> Result<(), Error> {
         db.set_sources((), sources);
     }
 
+    for src in db.sources(()).drain() {
+        println!("{:#?}", db.dependencies(src));
+    }
+
     let analysed = crate::project::analysed(db.all_sources())?;
+    //let analysed = crate::project::analysed(srcs)?;
 
     // Generate outputs (Erlang code, html documentation, etc)
     let mut output_files = vec![];
