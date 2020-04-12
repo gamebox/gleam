@@ -24,6 +24,11 @@ pub trait Modules: Sources {
     fn dependencies(&self, file_path: String) -> Vec<String>;
 }
 
+#[salsa::query_group(CodeGenStorage)]
+pub trait CodeGen: Modules {
+    fn generate_code(&self) -> Vec<>;
+}
+
 pub fn all_sources(db: &impl Sources) -> Vec<Input> {
     let mut sources = db.sources(());
     sources.drain().map(|src| db.source_file(src)).collect()
