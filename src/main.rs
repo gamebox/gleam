@@ -40,7 +40,7 @@ extern crate handlebars;
 #[macro_use]
 extern crate salsa;
 
-use crate::db::{Modules, Sources};
+use crate::db::{Sources, CodeGen};
 use crate::error::Error;
 use crate::project::ModuleOrigin;
 use crate::project::OutputFile;
@@ -49,7 +49,6 @@ use std::collections::HashSet;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::PathBuf;
-use std::sync::Arc;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
 use strum::VariantNames;
@@ -178,19 +177,10 @@ fn command_build(root: String, write_docs: bool) -> Result<(), Error> {
         db.set_sources((), sources);
     }
 
-    for src in db.sources(()).drain() {
-        println!("{:#?}", db.dependencies(src));
-    }
-
-    let analysed = crate::project::analysed(db.all_sources())?;
-    //let analysed = crate::project::analysed(srcs)?;
-
     // Generate outputs (Erlang code, html documentation, etc)
-    let mut output_files = vec![];
+    let output_files = db.generate_project_code();
     if write_docs {
         todo!()
-    } else {
-        crate::project::generate_erlang(analysed.as_slice(), &mut output_files);
     }
 
     // Delete the gen directory before generating the newly compiled files

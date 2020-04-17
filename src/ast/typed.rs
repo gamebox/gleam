@@ -1,7 +1,7 @@
 use super::*;
 use crate::typ::Type;
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum TypedExpr {
     Int {
         location: SrcSpan,

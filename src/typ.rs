@@ -137,21 +137,21 @@ pub fn collapse_links(t: Arc<Type>) -> Arc<Type> {
     t
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct AccessorsMap {
     pub public: bool,
     pub typ: Arc<Type>,
     pub accessors: HashMap<String, RecordAccessor>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub struct RecordAccessor {
     pub index: u64,
     pub label: String,
     pub typ: Arc<Type>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FieldMap {
     arity: usize,
     fields: HashMap<String, usize>,
@@ -245,7 +245,7 @@ impl FieldMap {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueConstructorVariant {
     /// A locally defined variable or function parameter
     LocalVariable,
@@ -279,13 +279,13 @@ impl ValueConstructorVariant {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModuleValueConstructor {
     Record { name: String },
     Fn,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Module {
     pub name: Vec<String>,
     pub types: HashMap<String, TypeConstructor>,
@@ -293,7 +293,7 @@ pub struct Module {
     pub accessors: HashMap<String, AccessorsMap>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PatternConstructor {
     Record { name: String },
 }
@@ -912,7 +912,7 @@ impl TypeVar {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeConstructor {
     pub public: bool,
     pub origin: SrcSpan,
@@ -921,7 +921,7 @@ pub struct TypeConstructor {
     pub typ: Arc<Type>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ValueConstructor {
     pub public: bool,
     pub origin: SrcSpan,
@@ -929,7 +929,7 @@ pub struct ValueConstructor {
     pub typ: Arc<Type>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TypeAliasConstructor {
     pub public: bool,
     pub module: Vec<String>,

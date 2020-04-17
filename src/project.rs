@@ -17,7 +17,7 @@ pub struct Input {
     pub origin: ModuleOrigin,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Analysed {
     pub ast: TypedModule,
     pub name: Vec<String>,
@@ -26,7 +26,7 @@ pub struct Analysed {
     pub source_base_path: PathBuf,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct OutputFile {
     pub text: String,
     pub path: PathBuf,
