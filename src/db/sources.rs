@@ -1,4 +1,4 @@
-use salsa::{Database};
+use salsa::Database;
 use std::collections::HashSet;
 
 use crate::project::Input;

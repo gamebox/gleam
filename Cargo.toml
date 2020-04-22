@@ -41,6 +41,8 @@ handlebars = "3.0"
 pulldown-cmark = "0.7.0"
 # Salsa - incremental computations
 salsa = "0.14.1"
+# Watch for file changes
+notify = "4.0.12"
 
 [build-dependencies]
 lalrpop = "0.17"

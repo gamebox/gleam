@@ -1,26 +1,21 @@
-mod sources;
-mod modules;
 mod analyze;
 mod codegen;
+mod modules;
+mod sources;
 
 use salsa::{Database, Runtime};
 
-use self::sources::SourcesStorage;
-use self::modules::ModulesStorage;
 use self::analyze::AnalyzedStorage;
 use self::codegen::CodeGenStorage;
+use self::modules::ModulesStorage;
+use self::sources::SourcesStorage;
 
-pub use self::sources::Sources;
-pub use self::modules::Modules;
 pub use self::analyze::Analyzed;
 pub use self::codegen::CodeGen;
+pub use self::modules::Modules;
+pub use self::sources::Sources;
 
-#[salsa::database(
-    SourcesStorage,
-    ModulesStorage,
-    AnalyzedStorage,
-    CodeGenStorage
-)]
+#[salsa::database(SourcesStorage, ModulesStorage, AnalyzedStorage, CodeGenStorage)]
 #[derive(Default)]
 pub struct GleamDatabase {
     runtime: Runtime<GleamDatabase>,

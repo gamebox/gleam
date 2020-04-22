@@ -1,13 +1,74 @@
-mod source_tree;
 #[cfg(test)]
 mod tests;
 
-use crate::ast::TypedModule;
+use crate::ast::{SrcSpan, TypedModule};
 use crate::error::{Error, FileIOAction, FileKind, GleamExpect};
+use crate::parser::{self, Comment};
 use crate::typ;
 use source_tree::SourceTree;
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+#[derive(Debug)]
+pub struct SourceCollection {
+    dependency_dirs: Vec<PathBuf>,
+    source_dir: PathBuf,
+    test_dir: PathBuf,
+}
+
+impl SourceCollection {
+    pub fn new(source_dir: PathBuf, test_dir: PathBuf, dependency_dirs: Vec<PathBuf>) -> Self {
+        SourceCollection {
+            source_dir,
+            test_dir,
+            dependency_dirs,
+        }
+    }
+
+    pub fn sources(&self, project_name: &String) -> Result<Vec<Input>, Error> {
+        let mut srcs = vec![];
+
+        for project_dir in self
+            .dependency_dirs
+            .iter()
+            .filter_map(|d| std::fs::read_dir(d).ok())
+            .flat_map(|d| d.filter_map(Result::ok))
+            .map(|d| d.path())
+            .filter(|p| {
+                p.file_name().and_then(|os_string| os_string.to_str()) != Some(project_name)
+            })
+        {
+            collect_source(project_dir.join("src"), ModuleOrigin::Dependency, &mut srcs)?;
+        }
+
+        // Collect source code from top level project
+        crate::project::collect_source(self.source_dir.clone(), ModuleOrigin::Src, &mut srcs)?;
+        crate::project::collect_source(self.test_dir.clone(), ModuleOrigin::Test, &mut srcs)?;
+
+        Ok(srcs)
+    }
+
+    pub fn dirs(&self) -> Vec<PathBuf> {
+        let mut ds = self.dependency_dirs.clone();
+        ds.push(self.source_dir.clone());
+        ds.push(self.test_dir.clone());
+        ds
+    }
+
+    pub fn origin_of(&self, path: PathBuf) -> Option<(PathBuf, ModuleOrigin)> {
+        if path.starts_with(self.source_dir.clone()) {
+            Some((self.source_dir.clone(), ModuleOrigin::Src))
+        } else if path.starts_with(self.test_dir.clone()) {
+            Some((self.test_dir.clone(), ModuleOrigin::Test))
+        } else {
+            self.dependency_dirs
+                .clone()
+                .into_iter()
+                .find(|dir| path.starts_with(dir))
+                .map(|dir| (dir, ModuleOrigin::Dependency))
+        }
+    }
+}
 
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct Input {
@@ -48,13 +109,19 @@ impl ModuleOrigin {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Module {
-    src: String,
-    path: PathBuf,
-    source_base_path: PathBuf,
-    origin: ModuleOrigin,
-    module: crate::ast::UntypedModule,
+    pub src: String,
+    pub path: PathBuf,
+    pub source_base_path: PathBuf,
+    pub origin: ModuleOrigin,
+    pub module: crate::ast::UntypedModule,
+}
+
+impl Module {
+    pub fn dependencies(&self) -> Vec<(String, SrcSpan)> {
+        self.module.dependencies()
+    }
 }
 
 pub fn analysed(inputs: Vec<Input>) -> Result<Vec<Analysed>, Error> {
@@ -200,4 +267,64 @@ pub fn collect_source(
         })
     }
     Ok(())
+}
+
+pub fn create_module_name(input: &Input) -> String {
+    input
+        .path
+        .strip_prefix(input.source_base_path.clone())
+        .unwrap()
+        .parent()
+        .unwrap()
+        .join(input.path.file_stem().unwrap())
+        .to_str()
+        .unwrap()
+        .to_string()
+        .replace("\\", "/")
+}
+
+pub fn attach_doc_comments<'a, A, B>(
+    module: &mut crate::ast::Module<A, B>,
+    mut comments: &'a [Comment<'a>],
+) {
+    for statement in &mut module.statements {
+        let location = statement.location();
+        // TODO: be more fine grained with how we apply the comments.
+        // i.e. Apply them to custom type constructors.
+        let (doc, rest) = parser::take_before(comments, location.end);
+        comments = rest;
+        statement.put_doc(doc);
+    }
+}
+
+pub fn is_gleam_path(path: PathBuf, src_dir: PathBuf) -> bool {
+    use regex::Regex;
+    lazy_static! {
+        static ref RE: Regex = Regex::new("^([a-z_]+(/|\\\\))*[a-z_]+\\.gleam$")
+            .gleam_expect("project::collect_source() RE regex");
+    }
+
+    RE.is_match(
+        path.strip_prefix(&*src_dir)
+            .gleam_expect("project::collect_source(): strip_prefix")
+            .to_str()
+            .unwrap_or(""),
+    )
+}
+
+pub fn create_input_from_source(
+    path: PathBuf,
+    src: String,
+    source_collection: &SourceCollection,
+) -> Option<Input> {
+    source_collection
+        .origin_of(path.clone())
+        .map(|(source_base_path, origin)| Input {
+            path: path
+                .canonicalize()
+                .gleam_expect("project::create_input_from_source(): path canonicalize"),
+            source_base_path,
+            origin,
+            src,
+        })
 }

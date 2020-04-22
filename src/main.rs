@@ -6,7 +6,9 @@ mod db;
 mod doc;
 mod erl;
 mod error;
+mod file;
 mod format;
+mod incremental;
 mod new;
 mod parser;
 mod pretty;
@@ -40,14 +42,13 @@ extern crate handlebars;
 #[macro_use]
 extern crate salsa;
 
-use crate::db::{Sources, CodeGen};
+use crate::db::{CodeGen, Sources};
 use crate::error::Error;
-use crate::project::ModuleOrigin;
-use crate::project::OutputFile;
+use crate::project::SourceCollection;
 use serde::Deserialize;
 use std::collections::HashSet;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::Read;
 use std::path::PathBuf;
 use structopt::clap::AppSettings;
 use structopt::StructOpt;
@@ -64,6 +65,11 @@ enum Command {
         path: String,
         #[structopt(help = "generate docs for this package as well", long)]
         doc: bool,
+        #[structopt(
+            help = "after the initial build, watch for chnages to Gleam source",
+            long
+        )]
+        watch: bool,
     },
 
     #[structopt(name = "new", about = "Create a new project")]
@@ -113,7 +119,7 @@ struct ProjectConfig {
 
 fn main() {
     let result = match Command::from_args() {
-        Command::Build { path, doc } => command_build(path, doc),
+        Command::Build { path, doc, watch } => command_build(path, doc, watch),
 
         Command::Format {
             stdin,
@@ -135,50 +141,36 @@ fn main() {
     }
 }
 
-fn command_build(root: String, write_docs: bool) -> Result<(), Error> {
-    let mut srcs = vec![];
-
+fn command_build(root: String, write_docs: bool, watch: bool) -> Result<(), Error> {
     // Read gleam.toml
     let project_config = read_project_config(&root)?;
 
-    let root_path = PathBuf::from(&root);
+    let root_path = PathBuf::from(&root).canonicalize().unwrap();
     let lib_dir = root_path.join("_build").join("default").join("lib");
     let checkouts_dir = root_path.join("_checkouts");
 
-    for project_dir in [lib_dir, checkouts_dir]
-        .iter()
-        .filter_map(|d| std::fs::read_dir(d).ok())
-        .flat_map(|d| d.filter_map(Result::ok))
-        .map(|d| d.path())
-        .filter(|p| {
-            p.file_name().and_then(|os_string| os_string.to_str()) != Some(&project_config.name)
-        })
-    {
-        crate::project::collect_source(
-            project_dir.join("src"),
-            ModuleOrigin::Dependency,
-            &mut srcs,
-        )?;
-    }
-
-    // Collect source code from top level project
-    crate::project::collect_source(root_path.join("src"), ModuleOrigin::Src, &mut srcs)?;
-    crate::project::collect_source(root_path.join("test"), ModuleOrigin::Test, &mut srcs)?;
+    let source_collection = SourceCollection::new(
+        root_path.join("src"),
+        root_path.join("test"),
+        vec![lib_dir, checkouts_dir],
+    );
+    let srcs = source_collection.sources(&project_config.name)?;
 
     let mut db = db::GleamDatabase::default();
 
     db.set_sources((), HashSet::with_capacity(srcs.len()));
 
+    println!("Compiling {} sources", srcs.len());
     for src in srcs.into_iter() {
-        let path = src.path.to_str().unwrap().to_string();
-        db.set_source_file(path.clone(), src);
+        let name = crate::project::create_module_name(&src);
+        db.set_source_file(name.clone(), src);
         let mut sources = db.sources(());
-        sources.insert(path);
+        sources.insert(name);
         db.set_sources((), sources);
     }
 
     // Generate outputs (Erlang code, html documentation, etc)
-    let output_files = db.generate_project_code();
+    let output_files = db.generate_project_code()?;
     if write_docs {
         todo!()
     }
@@ -196,44 +188,16 @@ fn command_build(root: String, write_docs: bool) -> Result<(), Error> {
         }
     }
     for file in output_files {
-        write_file(file)?;
+        crate::file::write_file(file)?;
     }
     println!("Done!");
 
-    Ok(())
-}
-
-pub fn write_file(file: OutputFile) -> Result<(), Error> {
-    let OutputFile { path, text } = file;
-
-    let dir_path = path.parent().ok_or_else(|| Error::FileIO {
-        action: error::FileIOAction::FindParent,
-        kind: error::FileKind::Directory,
-        path: path.clone(),
-        err: None,
-    })?;
-
-    std::fs::create_dir_all(dir_path).map_err(|e| Error::FileIO {
-        action: error::FileIOAction::Create,
-        kind: error::FileKind::Directory,
-        path: dir_path.to_path_buf(),
-        err: Some(e.to_string()),
-    })?;
-
-    let mut f = File::create(&path).map_err(|e| Error::FileIO {
-        action: error::FileIOAction::Create,
-        kind: error::FileKind::File,
-        path: path.clone(),
-        err: Some(e.to_string()),
-    })?;
-
-    f.write_all(text.as_bytes()).map_err(|e| Error::FileIO {
-        action: error::FileIOAction::WriteTo,
-        kind: error::FileKind::File,
-        path: path.clone(),
-        err: Some(e.to_string()),
-    })?;
-    Ok(())
+    if watch {
+        println!("Waiting for changes...");
+        crate::incremental::watch_for_changes(source_collection, &mut db)
+    } else {
+        Ok(())
+    }
 }
 
 fn read_project_config(root: &str) -> Result<ProjectConfig, Error> {
